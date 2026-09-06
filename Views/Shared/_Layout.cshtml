@@ -35,5 +35,14 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
     <script src="~/js/site.js"></script>
     @RenderSection("Scripts", required: false)
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <script>
+            window.OneSignalDeferred = window.OneSignalDeferred || [];
+            OneSignalDeferred.push(async function(OneSignal) {
+              await OneSignal.init({
+                appId: "4a3cf552-6b9b-4cc7-a0f9-b1dc29a80960",
+              });
+            });
+    </script>
 </body>
 </html>
