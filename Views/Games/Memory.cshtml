@@ -1,0 +1,15 @@
+@{
+    ViewData["Title"] = "لعبة الذاكرة";
+}
+
+<h2>🃏 لعبة الذاكرة - طابق كل صورة مع زوجها</h2>
+
+<div class="game-status" id="movesCounter">عدد المحاولات: 0</div>
+
+<div id="memoryBoard" class="memory-board"></div>
+
+<button class="btn-secondary" id="resetMemoryBtn">لعبة جديدة 🔁</button>
+
+@section Scripts {
+    <script src="~/js/games/memory.js"></script>
+}

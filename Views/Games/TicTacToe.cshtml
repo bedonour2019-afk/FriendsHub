@@ -1,0 +1,27 @@
+@{
+    ViewData["Title"] = "تحدي إكس أو أونلاين";
+}
+
+<h2>❌⭕ ساحة تحدي إكس أو</h2>
+<p class="subtitle">اعمل تحدي وانتظر واحد من صحابك يقبله، أو اتفرج على مباراة شغالة دلوقتي.</p>
+
+<button id="createChallengeBtn" class="btn-primary" style="width:auto;padding:10px 24px;">
+    أنشئ تحدي جديد ⚔️
+</button>
+
+<h3>🕓 تحديات مفتوحة (محتاجة خصم)</h3>
+<div id="openChallenges" class="challenge-list">
+    <p class="empty-msg">مفيش تحديات مفتوحة دلوقتي</p>
+</div>
+
+<h3>🔴 مباريات شغالة دلوقتي (اتفرج عليها)</h3>
+<div id="activeGames" class="challenge-list">
+    <p class="empty-msg">مفيش مباريات شغالة دلوقتي</p>
+</div>
+
+@section Scripts {
+    <script>
+        const currentUser = "@User.Identity!.Name";
+    </script>
+    <script src="~/js/games/tictactoe-lobby.js"></script>
+}

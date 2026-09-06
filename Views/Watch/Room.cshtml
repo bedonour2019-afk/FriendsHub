@@ -1,0 +1,50 @@
+@{
+    ViewData["Title"] = "غرفة المشاهدة";
+    var roomId = ViewBag.RoomId as string;
+}
+
+<h2>🎬 غرفة مشاهدة <span id="roomIdLabel">@roomId</span></h2>
+<div id="hostBadge" class="host-badge" style="display:none">👑 أنت المضيف - التحكم في الفيديو بإيدك</div>
+<div id="viewerNote" class="viewer-note" style="display:none">👀 المضيف هو اللي بيتحكم في تشغيل الفيديو</div>
+
+<div class="watch-layout">
+    <div class="watch-main">
+        <div id="playerWrapper" class="player-wrapper">
+            <div id="player"></div>
+            <div id="playerOverlay" class="player-overlay" style="display:none"></div>
+        </div>
+
+        <form id="changeVideoForm" class="change-video-row" style="display:none">
+            <input id="newVideoUrlInput" class="form-input" placeholder="رابط فيديو يوتيوب جديد..." />
+            <button type="submit" class="btn-secondary">غيّر الفيديو</button>
+        </form>
+    </div>
+
+    <div class="watch-side">
+        <div class="participants-box">
+            <h4>👥 المشاهدين (<span id="participantsCount">0</span>)</h4>
+            <div id="participantsList" class="participants-list"></div>
+        </div>
+
+        <div class="party-chat-box">
+            <div id="partyMessages" class="party-messages"></div>
+            <form id="partyChatForm" class="party-chat-form">
+                <input id="partyChatInput" class="form-input" placeholder="اكتب تعليق..." autocomplete="off" />
+                <button type="submit" class="btn-primary">إرسال</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<a asp-controller="Watch" asp-action="Index" class="btn-secondary" style="display:inline-block;margin-top:14px;">
+    رجوع للوبي
+</a>
+
+@section Scripts {
+    <script>
+        const roomId = "@roomId";
+        const currentUser = "@User.Identity!.Name";
+    </script>
+    <script src="https://www.youtube.com/iframe_api"></script>
+    <script src="~/js/watch/room.js"></script>
+}

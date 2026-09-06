@@ -1,0 +1,106 @@
+@model List<Post>
+@{
+    ViewData["Title"] = "البوستات";
+    var stories = ViewBag.Stories as List<Story>;
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert-error">@TempData["Error"]</div>
+}
+
+<div class="stories-bar">
+    <div class="story-add" onclick="document.getElementById('storyModal').classList.add('open')">
+        <div class="story-circle add-circle">+</div>
+        <span>إضافة ستوري</span>
+    </div>
+
+    @if (stories != null)
+    {
+        foreach (var s in stories)
+        {
+            <div class="story-item" onclick="openStory('@s.ImagePath', '@s.Username')">
+                <div class="story-circle">
+                    <img src="@s.ImagePath" />
+                </div>
+                <span>@s.Username</span>
+            </div>
+        }
+    }
+</div>
+
+<div class="post-add-bar">
+    <button class="btn-primary" onclick="document.getElementById('postModal').classList.add('open')">
+        📷 بوست جديد
+    </button>
+</div>
+
+<div class="feed">
+    @foreach (var post in Model)
+    {
+        <div class="post-card">
+            <div class="post-header">
+                <strong>@post.Username</strong>
+                <span class="post-time">@post.CreatedAt.ToString("dd/MM HH:mm")</span>
+            </div>
+            <img class="post-image" src="@post.ImagePath" />
+            @if (!string.IsNullOrEmpty(post.Caption))
+            {
+                <div class="post-caption"><strong>@post.Username</strong> @post.Caption</div>
+            }
+        </div>
+    }
+
+    @if (!Model.Any())
+    {
+        <p class="empty-msg">لسه مفيش بوستات، اعمل أول بوست 👆</p>
+    }
+</div>
+
+<!-- Modal: بوست جديد -->
+<div id="postModal" class="modal-overlay">
+    <div class="modal-box">
+        <h3>بوست جديد</h3>
+        <form asp-controller="Posts" asp-action="CreatePost" method="post" enctype="multipart/form-data">
+            <input type="file" name="image" accept="image/*" required class="form-input" />
+            <textarea name="caption" class="form-textarea" rows="3" placeholder="اكتب تعليق..."></textarea>
+            <div class="modal-actions">
+                <button type="button" class="btn-secondary" onclick="document.getElementById('postModal').classList.remove('open')">إلغاء</button>
+                <button type="submit" class="btn-primary">نشر</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: ستوري جديد -->
+<div id="storyModal" class="modal-overlay">
+    <div class="modal-box">
+        <h3>إضافة ستوري</h3>
+        <form asp-controller="Posts" asp-action="CreateStory" method="post" enctype="multipart/form-data">
+            <input type="file" name="image" accept="image/*" required class="form-input" />
+            <div class="modal-actions">
+                <button type="button" class="btn-secondary" onclick="document.getElementById('storyModal').classList.remove('open')">إلغاء</button>
+                <button type="submit" class="btn-primary">نشر الستوري</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: عرض ستوري -->
+<div id="storyViewer" class="modal-overlay">
+    <div class="story-viewer-box">
+        <span class="close-viewer" onclick="document.getElementById('storyViewer').classList.remove('open')">✕</span>
+        <div id="storyViewerUser" class="story-viewer-user"></div>
+        <img id="storyViewerImg" src="" />
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function openStory(imagePath, username) {
+            document.getElementById('storyViewerImg').src = imagePath;
+            document.getElementById('storyViewerUser').textContent = username;
+            document.getElementById('storyViewer').classList.add('open');
+        }
+    </script>
+}

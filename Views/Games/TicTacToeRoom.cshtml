@@ -1,0 +1,29 @@
+@{
+    ViewData["Title"] = "غرفة اللعب";
+    var roomId = ViewBag.RoomId as string;
+}
+
+<h2>❌⭕ غرفة رقم <span id="roomIdLabel">@roomId</span></h2>
+
+<div class="ttt-online-info">
+    <div>🔵 اللاعب X: <span id="playerXName">-</span></div>
+    <div>🔴 اللاعب O: <span id="playerOName">في انتظار خصم...</span></div>
+    <div>👀 متفرجين: <span id="spectatorsCount">0</span></div>
+</div>
+
+<div class="game-status" id="status">جاري الاتصال...</div>
+
+<div id="board" class="ttt-board"></div>
+
+<div class="ttt-actions">
+    <button id="rematchBtn" class="btn-primary" style="display:none">لعبة تانية 🔁</button>
+    <a asp-controller="Games" asp-action="TicTacToe" class="btn-secondary">رجوع لساحة التحدي</a>
+</div>
+
+@section Scripts {
+    <script>
+        const roomId = "@roomId";
+        const currentUser = "@User.Identity!.Name";
+    </script>
+    <script src="~/js/games/tictactoe-online.js"></script>
+}

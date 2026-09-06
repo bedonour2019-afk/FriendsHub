@@ -1,0 +1,29 @@
+@{
+    ViewData["Title"] = "الرئيسية";
+}
+
+<h1>أهلاً @User.Identity!.Name 👋</h1>
+<p class="subtitle">اختار تروح فين</p>
+
+<div class="cards-grid">
+    <a class="dash-card" asp-controller="Chat" asp-action="Index">
+        <div class="dash-icon">💬</div>
+        <div>الشات</div>
+    </a>
+    <a class="dash-card" asp-controller="Teams" asp-action="Index">
+        <div class="dash-icon">⚔️</div>
+        <div>تقسيم الفرق</div>
+    </a>
+    <a class="dash-card" asp-controller="Posts" asp-action="Index">
+        <div class="dash-icon">📷</div>
+        <div>البوستات والستوري</div>
+    </a>
+    <a class="dash-card" asp-controller="Watch" asp-action="Index">
+        <div class="dash-icon">🎬</div>
+        <div>مشاهدة جماعية</div>
+    </a>
+    <a class="dash-card" asp-controller="Games" asp-action="Index">
+        <div class="dash-icon">🎮</div>
+        <div>الألعاب</div>
+    </a>
+</div>

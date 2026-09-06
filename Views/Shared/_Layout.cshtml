@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FriendsHub</title>
+    <link rel="stylesheet" href="~/css/site.css" />
+</head>
+<body>
+    @if (User.Identity != null && User.Identity.IsAuthenticated)
+    {
+        <nav class="navbar">
+            <div class="brand">FriendsHub</div>
+            <div class="nav-links">
+                <a asp-controller="Home" asp-action="Index">الرئيسية</a>
+                <a asp-controller="Chat" asp-action="Index">الشات</a>
+                <a asp-controller="Teams" asp-action="Index">تقسيم الفرق</a>
+                <a asp-controller="Posts" asp-action="Index">البوستات</a>
+                <a asp-controller="Watch" asp-action="Index">مشاهدة جماعية</a>
+                <a asp-controller="Games" asp-action="Index">الألعاب</a>
+            </div>
+            <div class="nav-user">
+                <span>👤 @User.Identity.Name @(User.IsInRole("Admin") ? "(أدمن)" : "")</span>
+                <form asp-controller="Account" asp-action="Logout" method="post">
+                    <button type="submit" class="btn-link">خروج</button>
+                </form>
+            </div>
+        </nav>
+    }
+
+    <main class="container">
+        @RenderBody()
+    </main>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    <script src="~/js/site.js"></script>
+    @RenderSection("Scripts", required: false)
+</body>
+</html>

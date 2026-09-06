@@ -1,0 +1,61 @@
+@model List<ChatMessage>
+@{
+    ViewData["Title"] = "الشات";
+}
+
+<div class="chat-wrapper">
+    <div class="chat-header">💬 شات الجروب</div>
+
+    <div id="messagesBox" class="chat-messages">
+        @foreach (var msg in Model)
+        {
+            var mine = msg.Username == User.Identity!.Name ? "mine" : "";
+            <div class="chat-bubble-row @mine">
+                <div class="chat-bubble @mine @(msg.Type == "sticker" ? "sticker-bubble" : "")">
+                    <div class="bubble-sender">@msg.Username</div>
+
+                    @if (msg.Type == "text")
+                    {
+                        <div class="bubble-text">@msg.Content</div>
+                    }
+                    else if (msg.Type == "sticker")
+                    {
+                        <div class="bubble-sticker">@msg.Content</div>
+                    }
+                    else if (msg.Type == "image")
+                    {
+                        <img class="bubble-image" src="@msg.FilePath" />
+                    }
+                    else if (msg.Type == "audio")
+                    {
+                        <audio class="bubble-audio" controls src="@msg.FilePath"></audio>
+                    }
+
+                    <div class="bubble-time">@msg.SentAt.ToString("HH:mm")</div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div id="emojiPanel" class="picker-panel"></div>
+    <div id="stickerPanel" class="picker-panel"></div>
+
+    <form id="sendForm" class="chat-input-row">
+        <button type="button" id="emojiBtn" class="icon-btn" title="إيموجي">😀</button>
+        <button type="button" id="stickerBtn" class="icon-btn" title="ستيكرات">🎉</button>
+        <button type="button" id="imageBtn" class="icon-btn" title="صورة">🖼️</button>
+        <input type="file" id="imageInput" accept="image/*" hidden />
+        <button type="button" id="micBtn" class="icon-btn" title="تسجيل صوتي">🎤</button>
+
+        <input id="messageInput" class="form-input" placeholder="اكتب رسالتك..." autocomplete="off" />
+        <button type="submit" class="btn-primary">إرسال</button>
+    </form>
+    <div id="recordingIndicator" class="recording-indicator" style="display:none">🔴 جاري التسجيل... اضغط على المايك تاني للإيقاف والإرسال</div>
+</div>
+
+@section Scripts {
+    <script>
+        const currentUser = "@User.Identity!.Name";
+    </script>
+    <script src="~/js/chat.js"></script>
+}

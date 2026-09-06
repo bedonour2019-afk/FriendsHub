@@ -1,0 +1,25 @@
+@{
+    ViewData["Title"] = "غرفة المشاهدة الجماعية";
+}
+
+<h2>🎬 غرفة المشاهدة الجماعية</h2>
+<p class="subtitle">الصق رابط فيديو يوتيوب وابدأ مشاهدة جماعية متزامنة مع صحابك.</p>
+
+<form id="createRoomForm" class="teams-form">
+    <label>رابط فيديو يوتيوب</label>
+    <input id="videoUrlInput" class="form-input" placeholder="https://www.youtube.com/watch?v=..." />
+    <div id="createRoomError" class="alert-error" style="display:none"></div>
+    <button type="submit" class="btn-primary">ابدأ مشاهدة جماعية 🎬</button>
+</form>
+
+<h3>🔴 غرف مشاهدة شغالة دلوقتي</h3>
+<div id="activeRooms" class="challenge-list">
+    <p class="empty-msg">مفيش غرف مشاهدة شغالة دلوقتي</p>
+</div>
+
+@section Scripts {
+    <script>
+        const currentUser = "@User.Identity!.Name";
+    </script>
+    <script src="~/js/watch/lobby.js"></script>
+}

@@ -1,0 +1,34 @@
+@model LoginViewModel
+@{
+    ViewData["Title"] = "تسجيل الدخول";
+}
+
+<div class="auth-box">
+    <h2>تسجيل دخول المستخدمين</h2>
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert-error">@Model.ErrorMessage</div>
+    }
+
+    <form asp-controller="Account" asp-action="Login" method="post">
+        <div asp-validation-summary="ModelOnly" class="alert-error"></div>
+
+        <label asp-for="Username"></label>
+        <input asp-for="Username" class="form-input" autofocus />
+        <span asp-validation-for="Username" class="field-error"></span>
+
+        <label asp-for="Password"></label>
+        <input asp-for="Password" type="password" class="form-input" />
+        <span asp-validation-for="Password" class="field-error"></span>
+
+        <button type="submit" class="btn-primary">دخول</button>
+    </form>
+
+    <p class="switch-link">
+        مستخدم جديد؟ <a asp-controller="Account" asp-action="Register">اعمل حساب</a>
+    </p>
+    <p class="switch-link">
+        أنت أدمن؟ <a asp-controller="Account" asp-action="AdminLogin">ادخل من هنا</a>
+    </p>
+</div>

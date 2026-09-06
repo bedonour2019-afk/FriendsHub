@@ -1,0 +1,42 @@
+@model TeamsResultViewModel
+@{
+    ViewData["Title"] = "تقسيم الفرق";
+}
+
+<h2>⚔️ تقسيم الفرق عشوائي</h2>
+
+<div asp-validation-summary="All" class="alert-error"></div>
+
+<form asp-controller="Teams" asp-action="Index" method="post" class="teams-form">
+    <label>اكتب الأسماء (كل اسم في سطر)</label>
+    <textarea name="NamesRaw" class="form-textarea" rows="8" placeholder="أحمد
+محمد
+سارة
+عمر">@ViewBag.NamesRaw</textarea>
+    <button type="submit" class="btn-primary">قسّم الفرق 🎲</button>
+</form>
+
+@if (Model.TeamA.Count > 0 || Model.TeamB.Count > 0)
+{
+    <div class="teams-result">
+        <div class="team-box team-a">
+            <h3>الفريق الأول 🔵</h3>
+            <ul>
+                @foreach (var name in Model.TeamA)
+                {
+                    <li>@name</li>
+                }
+            </ul>
+        </div>
+        <div class="vs">VS</div>
+        <div class="team-box team-b">
+            <h3>الفريق التاني 🔴</h3>
+            <ul>
+                @foreach (var name in Model.TeamB)
+                {
+                    <li>@name</li>
+                }
+            </ul>
+        </div>
+    </div>
+}

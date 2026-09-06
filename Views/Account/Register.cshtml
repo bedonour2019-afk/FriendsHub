@@ -1,0 +1,34 @@
+@model RegisterViewModel
+@{
+    ViewData["Title"] = "حساب جديد";
+}
+
+<div class="auth-box">
+    <h2>اعمل حساب جديد</h2>
+
+    <form asp-controller="Account" asp-action="Register" method="post">
+        <div asp-validation-summary="ModelOnly" class="alert-error"></div>
+
+        <label asp-for="Username"></label>
+        <input asp-for="Username" class="form-input" autofocus />
+        <span asp-validation-for="Username" class="field-error"></span>
+
+        <label asp-for="Password"></label>
+        <input asp-for="Password" type="password" class="form-input" />
+        <span asp-validation-for="Password" class="field-error"></span>
+
+        <label asp-for="ConfirmPassword"></label>
+        <input asp-for="ConfirmPassword" type="password" class="form-input" />
+        <span asp-validation-for="ConfirmPassword" class="field-error"></span>
+
+        <label asp-for="GroupPasscode"></label>
+        <input asp-for="GroupPasscode" type="password" class="form-input" placeholder="أدخل كود الجروب السرّي" />
+        <span asp-validation-for="GroupPasscode" class="field-error"></span>
+
+        <button type="submit" class="btn-primary">تسجيل</button>
+    </form>
+
+    <p class="switch-link">
+        عندك حساب؟ <a asp-controller="Account" asp-action="Login">سجل دخولك</a>
+    </p>
+</div>

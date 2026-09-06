@@ -1,0 +1,16 @@
+@{
+    ViewData["Title"] = "الألعاب";
+}
+
+<h2>🎮 الألعاب</h2>
+
+<div class="cards-grid">
+    <a class="dash-card" asp-controller="Games" asp-action="TicTacToe">
+        <div class="dash-icon">❌⭕</div>
+        <div>إكس أو أونلاين (تحدي حد لايف)</div>
+    </a>
+    <a class="dash-card" asp-controller="Games" asp-action="Memory">
+        <div class="dash-icon">🃏</div>
+        <div>لعبة الذاكرة (طابق الصور)</div>
+    </a>
+</div>
