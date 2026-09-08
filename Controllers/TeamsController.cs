@@ -3,6 +3,7 @@ using FriendsHub.Models;
 using FriendsHub.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace FriendsHub.Controllers
 {

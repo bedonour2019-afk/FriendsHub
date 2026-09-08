@@ -102,7 +102,7 @@ namespace FriendsHub.Controllers
             if (!ModelState.IsValid) return View(model);
 
             // التحقق من كلمة السر الخاصة
-            if (model.SecretCode != "bodyprograming")
+            if (model.SecretCode != "elmoltaka")
             {
                 ModelState.AddModelError("SecretCode", "كلمة السر غير صحيحة");
                 return View(model);

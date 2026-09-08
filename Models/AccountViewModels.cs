@@ -113,4 +113,12 @@ namespace FriendsHub.Models
         public string? SuccessMessage { get; set; }
         public string? ErrorMessage { get; set; }
     }
+
+    public class ChatMessageItemViewModel
+    {
+        public ChatMessage Message { get; set; } = null!;
+        public Dictionary<string, int> ReactionCounts { get; set; } = new();
+        public bool CanDelete { get; set; }
+        public string? CurrentUserReaction { get; set; }
+    }
 }
