@@ -1,0 +1,153 @@
+@model List<FriendsHub.Models.AppUser>
+@{
+    ViewData["Title"] = "لوحة تحكم الأدمن";
+}
+
+<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:16px;">
+    <h2>⚙️ لوحة تحكم الأدمن</h2>
+    <span class="badge" style="background:#6a11cb; color:#fff; font-size:13px; padding:6px 12px;">صلاحيات كاملة للموقع 👑</span>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div style="background:#1a4d1a; color:#4caf50; padding:10px 14px; border-radius:8px; margin-bottom:12px; font-size:14px;">
+        @TempData["Success"]
+    </div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert-error">@TempData["Error"]</div>
+}
+
+<!-- بطاقات الإحصائيات -->
+<div class="cards-grid" style="margin-top:0; margin-bottom:24px;">
+    <div class="dash-card">
+        <div class="dash-icon">👥</div>
+        <div style="font-size:24px; font-weight:bold; color:#2575fc;">@ViewBag.TotalUsers</div>
+        <div>مستخدمين مسجلين</div>
+    </div>
+    <div class="dash-card">
+        <div class="dash-icon">📷</div>
+        <div style="font-size:24px; font-weight:bold; color:#e0245e;">@ViewBag.TotalPosts</div>
+        <div>منشورات</div>
+    </div>
+    <div class="dash-card">
+        <div class="dash-icon">🌟</div>
+        <div style="font-size:24px; font-weight:bold; color:#f39c12;">@ViewBag.TotalStories</div>
+        <div>ستوريهات</div>
+    </div>
+    <div class="dash-card">
+        <div class="dash-icon">💬</div>
+        <div style="font-size:24px; font-weight:bold; color:#075e54;">@ViewBag.TotalMessages</div>
+        <div>رسائل شات</div>
+    </div>
+</div>
+
+<!-- إرسال إشعار للجميع -->
+<div style="background: #16213e; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
+    <h3 style="color: #e0e0e0; margin: 0 0 15px 0;">📢 إرسال إشعار للجميع</h3>
+    <form asp-controller="Admin" asp-action="BroadcastNotification" method="post">
+        <div style="margin-bottom: 10px;">
+            <label style="color: #e0e0e0;">عنوان الإشعار</label>
+            <input type="text" name="title" class="form-input" placeholder="اكتب عنوان الإشعار..." required />
+        </div>
+        <div style="margin-bottom: 10px;">
+            <label style="color: #e0e0e0;">رسالة الإشعار</label>
+            <textarea name="message" class="form-textarea" rows="3" placeholder="اكتب محتوى الإشعار..." required></textarea>
+        </div>
+        <button type="submit" class="btn-primary">إرسال للجميع 📢</button>
+    </form>
+</div>
+
+<!-- تنبيه الصلاحيات للأدمن -->
+<div style="background:#30475e; border:1px solid #2575fc; color:#e0e0e0; padding:12px 16px; border-radius:10px; margin-bottom:20px; font-size:13px; line-height:1.6;">
+    <strong>💡 صلاحيات المشرف الشاملة:</strong><br />
+    بصفتك أدمن، يمكنك حذف أي منشور، ستوري، تعليق، أو رسالة شات في الموقع بالكامل عبر الضغط على أيقونة الحذف 🗑️ بجانب أي عنصر في صفحات البوستات والشات.
+    كما يمكنك أدناه إدارة حسابات المستخدمين المسجلين، تغيير أدوارهم، وتعيين كلمات مرور جديدة لأي حساب.
+</div>
+
+<!-- جدول المستخدمين المسجلين -->
+<h3 style="color: #e0e0e0;">📋 قائمة المستخدمين المسجلين</h3>
+<div class="admin-table-wrapper">
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>المستخدم</th>
+                <th>البريد الإلكتروني</th>
+                <th>الحالة</th>
+                <th>الدور</th>
+                <th>تاريخ التسجيل</th>
+                <th>إدارة كلمة المرور</th>
+                <th>إجراءات</th>
+            </tr>
+        </thead>
+        <tbody>
+            @for (int i = 0; i < Model.Count; i++)
+            {
+                var user = Model[i];
+                <tr>
+                    <td>@(i + 1)</td>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <img src="@(user.ProfilePicture ?? "/uploads/profiles/default.png")" alt="@user.Username" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #2575fc;" />
+                            <strong>@user.Username</strong>
+                        </div>
+                    </td>
+                    <td>@(string.IsNullOrEmpty(user.Email) ? "غير مسجل" : user.Email)</td>
+                    <td>
+                        @if (user.IsOnline)
+                        {
+                            <span style="color: #4caf50; font-weight: bold;">🟢 أونلاين</span>
+                        }
+                        else
+                        {
+                            <span style="color: #888;">⚫ أوفلاين</span>
+                            <div style="font-size: 10px; color: #a0a0a0;">
+                                @(user.LastSeen?.ToString("dd/MM/yyyy HH:mm") ?? "غير معروف")
+                            </div>
+                        }
+                    </td>
+                    <td>
+                        <span class="@(user.Role == "Admin" ? "role-badge-admin" : "role-badge-user")">
+                            @user.Role
+                        </span>
+                    </td>
+                    <td>@user.CreatedAt.ToString("yyyy/MM/dd HH:mm")</td>
+                    <td>
+                        <form asp-controller="Admin" asp-action="ResetUserPassword" method="post" style="display:flex; gap:6px; align-items:center;">
+                            <input type="hidden" name="userId" value="@user.Id" />
+                            <input type="text" name="newPassword" placeholder="باسورد جديد..." class="form-input" style="margin:0; padding:4px 8px; width:130px; font-size:12px;" required />
+                            <button type="submit" class="btn-primary" style="width:auto; padding:4px 10px; font-size:12px;">تعيين</button>
+                        </form>
+                    </td>
+                    <td>
+                        <div style="display:flex; gap:6px; align-items:center;">
+                            @if (user.Username.ToLower() != "admin")
+                            {
+                                <form asp-controller="Admin" asp-action="ChangeRole" method="post" style="display:inline;">
+                                    <input type="hidden" name="userId" value="@user.Id" />
+                                    <input type="hidden" name="newRole" value="@(user.Role == "Admin" ? "User" : "Admin")" />
+                                    <button type="submit" class="btn-secondary" style="margin:0; padding:4px 8px; font-size:12px;" title="تبديل الدور">
+                                        @(user.Role == "Admin" ? "جعله مستخدم عادي" : "ترقية لأدمن 👑")
+                                    </button>
+                                </form>
+
+                                <form asp-controller="Admin" asp-action="DeleteUser" method="post" style="display:inline;"
+                                      onsubmit="return confirm('هل أنت متأكد تماماً من حذف حساب @user.Username ومسح كل بياناته؟');">
+                                    <input type="hidden" name="userId" value="@user.Id" />
+                                    <button type="submit" class="btn-delete" style="padding:4px 8px; font-size:12px;">حذف الحساب</button>
+                                </form>
+                            }
+                            else
+                            {
+                                <span style="color:#888; font-size:12px;">(أدمن رئيسي)</span>
+                            }
+                        </div>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

@@ -39,6 +39,9 @@ namespace FriendsHub.Services
         public WatchPartyRoom? GetRoom(string roomId) =>
             _rooms.TryGetValue(roomId, out var r) ? r : null;
 
+        public bool RemoveRoom(string roomId) =>
+            _rooms.TryRemove(roomId, out _);
+
         public List<WatchPartyRoom> GetActiveRooms() =>
             _rooms.Values.OrderByDescending(r => r.CreatedAt).ToList();
 
@@ -57,7 +60,14 @@ namespace FriendsHub.Services
             lock (room) { room.Participants.Add(username); }
         }
 
-        // بيقبل: رابط يوتيوب كامل، رابط مختصر، رابط embed، أو الـ ID نفسه
+        public void RemoveParticipant(string roomId, string username)
+        {
+            var room = GetRoom(roomId);
+            if (room == null) return;
+            lock (room) { room.Participants.Remove(username); }
+        }
+
+        // بيقبل: رابط يوتيوب كامل، رابط مختصر، رابط embed، رابط shorts، أو الـ ID نفسه
         public static string? ExtractYoutubeId(string? url)
         {
             if (string.IsNullOrWhiteSpace(url)) return null;
@@ -68,10 +78,11 @@ namespace FriendsHub.Services
 
             var patterns = new[]
             {
-                @"youtu\.be/([a-zA-Z0-9_-]{11})",
-                @"youtube\.com/watch\?v=([a-zA-Z0-9_-]{11})",
-                @"youtube\.com/embed/([a-zA-Z0-9_-]{11})",
-                @"youtube\.com/shorts/([a-zA-Z0-9_-]{11})"
+                @"(?:https?:\/\/)?(?:www\.)?youtu\.be\/([a-zA-Z0-9_-]{11})",
+                @"(?:https?:\/\/)?(?:www\.)?youtube\.com\/watch\?.*v=([a-zA-Z0-9_-]{11})",
+                @"(?:https?:\/\/)?(?:www\.)?youtube\.com\/embed\/([a-zA-Z0-9_-]{11})",
+                @"(?:https?:\/\/)?(?:www\.)?youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})",
+                @"(?:https?:\/\/)?(?:www\.)?youtube\.com\/v\/([a-zA-Z0-9_-]{11})"
             };
 
             foreach (var pattern in patterns)

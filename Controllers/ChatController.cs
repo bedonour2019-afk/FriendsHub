@@ -19,13 +19,38 @@ namespace FriendsHub.Controllers
 
         public async Task<IActionResult> Index()
         {
+            var currentUser = User.Identity?.Name ?? "";
+            var isAdmin = User.IsInRole("Admin");
+
             var history = await _db.Messages
                 .OrderByDescending(m => m.Id)
                 .Take(150)
                 .OrderBy(m => m.Id)
                 .ToListAsync();
 
-            return View(history);
+            var messageIds = history.Select(m => m.Id).ToList();
+            var reactions = await _db.ChatMessageReactions
+                .Where(r => messageIds.Contains(r.MessageId))
+                .ToListAsync();
+
+            var viewModels = history.Select(m =>
+            {
+                var msgReactions = reactions.Where(r => r.MessageId == m.Id).ToList();
+                var userReaction = msgReactions.FirstOrDefault(r => r.Username == currentUser)?.ReactionType;
+                var counts = msgReactions
+                    .GroupBy(r => r.ReactionType)
+                    .ToDictionary(g => g.Key, g => g.Count());
+
+                return new FriendsHub.Models.ChatMessageItemViewModel
+                {
+                    Message = m,
+                    ReactionCounts = counts,
+                    CurrentUserReaction = userReaction,
+                    CanDelete = (m.Username == currentUser || isAdmin)
+                };
+            }).ToList();
+
+            return View(viewModels);
         }
 
         // بيرفع صورة أو تسجيل صوتي من الشات ويرجع الرابط بتاعه

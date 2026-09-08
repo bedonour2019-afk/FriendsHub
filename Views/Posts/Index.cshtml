@@ -1,7 +1,6 @@
-@model List<Post>
+@model FriendsHub.Models.PostsFeedViewModel
 @{
-    ViewData["Title"] = "البوستات";
-    var stories = ViewBag.Stories as List<Story>;
+    ViewData["Title"] = "البوستات والستوري";
 }
 
 @if (TempData["Error"] != null)
@@ -9,23 +8,25 @@
     <div class="alert-error">@TempData["Error"]</div>
 }
 
+<!-- -------- شريط الستوري (نمط إنستغرام) -------- -->
 <div class="stories-bar">
     <div class="story-add" onclick="document.getElementById('storyModal').classList.add('open')">
         <div class="story-circle add-circle">+</div>
         <span>إضافة ستوري</span>
     </div>
 
-    @if (stories != null)
+    @foreach (var userGroup in Model.GroupedStories)
     {
-        foreach (var s in stories)
-        {
-            <div class="story-item" onclick="openStory('@s.ImagePath', '@s.Username')">
-                <div class="story-circle">
-                    <img src="@s.ImagePath" />
-                </div>
-                <span>@s.Username</span>
+        <div class="story-item" onclick="openUserStories('@userGroup.Username')">
+            <div class="story-circle @(userGroup.Stories.Count > 1 ? "multi-story" : "")">
+                <img src="@userGroup.LatestImage" alt="@userGroup.Username" />
+                @if (userGroup.Stories.Count > 1)
+                {
+                    <span class="story-count-badge">@userGroup.Stories.Count</span>
+                }
             </div>
-        }
+            <span class="story-username">@userGroup.Username</span>
+        </div>
     }
 </div>
 
@@ -35,35 +36,131 @@
     </button>
 </div>
 
+<!-- -------- فيد البوستات -------- -->
 <div class="feed">
-    @foreach (var post in Model)
+    @foreach (var item in Model.Posts)
     {
-        <div class="post-card">
+        var post = item.Post;
+        var totalReactions = item.ReactionCounts.Values.Sum();
+
+        <div class="post-card" id="post-@post.Id">
             <div class="post-header">
-                <strong>@post.Username</strong>
-                <span class="post-time">@post.CreatedAt.ToString("dd/MM HH:mm")</span>
+                <div>
+                    <strong>@post.Username</strong>
+                    <span class="post-time">@post.CreatedAt.ToString("dd/MM HH:mm")</span>
+                </div>
+
+                @if (item.CanDelete)
+                {
+                    <form asp-controller="Posts" asp-action="DeletePost" asp-route-id="@post.Id" method="post"
+                          onsubmit="return confirm('هل أنت متأكد من حذف هذا البوست؟');">
+                        <button type="submit" class="btn-delete" title="حذف البوست">🗑️ حذف</button>
+                    </form>
+                }
             </div>
-            <img class="post-image" src="@post.ImagePath" />
+
+            <img class="post-image" src="@post.ImagePath" alt="Post image" />
+
             @if (!string.IsNullOrEmpty(post.Caption))
             {
-                <div class="post-caption"><strong>@post.Username</strong> @post.Caption</div>
+                <div class="post-caption">
+                    <strong>@post.Username</strong> @post.Caption
+                </div>
             }
+
+            <!-- شريط ملخص التفاعلات -->
+            <div class="reactions-summary" id="reactions-summary-@post.Id">
+                <span class="reactions-icons">
+                    @if (item.ReactionCounts.ContainsKey("like") && item.ReactionCounts["like"] > 0) { <span>👍</span> }
+                    @if (item.ReactionCounts.ContainsKey("love") && item.ReactionCounts["love"] > 0) { <span>❤️</span> }
+                    @if (item.ReactionCounts.ContainsKey("haha") && item.ReactionCounts["haha"] > 0) { <span>😂</span> }
+                    @if (item.ReactionCounts.ContainsKey("sad") && item.ReactionCounts["sad"] > 0) { <span>😢</span> }
+                    @if (item.ReactionCounts.ContainsKey("angry") && item.ReactionCounts["angry"] > 0) { <span>😡</span> }
+                </span>
+                <span class="reactions-total" id="reactions-total-@post.Id">
+                    @(totalReactions > 0 ? totalReactions.ToString() : "")
+                </span>
+            </div>
+
+            <!-- أزرار التفاعل والتعليق -->
+            <div class="post-action-buttons">
+                <!-- زر الريأكت مع باليتة فيسبوك -->
+                <div class="reaction-btn-wrapper">
+                    <button type="button" class="action-btn @(!string.IsNullOrEmpty(item.CurrentUserReaction) ? "reacted-" + item.CurrentUserReaction : "")"
+                            id="react-btn-@post.Id" onclick="quickReact(@post.Id)">
+                        <span id="react-btn-icon-@post.Id">
+                            @(item.CurrentUserReaction switch
+                            {
+                                "love" => "❤️ لاف",
+                                "haha" => "😂 أضحكني",
+                                "sad" => "😢 أحزنني",
+                                "angry" => "😡 أغضبني",
+                                "like" => "👍 أعجبني",
+                                _ => "👍 تفاعل"
+                            })
+                        </span>
+                    </button>
+
+                    <div class="reactions-palette">
+                        <button type="button" class="palette-item" onclick="reactPost(@post.Id, 'like')" title="لايك">👍</button>
+                        <button type="button" class="palette-item" onclick="reactPost(@post.Id, 'love')" title="لاف">❤️</button>
+                        <button type="button" class="palette-item" onclick="reactPost(@post.Id, 'haha')" title="أضحكني">😂</button>
+                        <button type="button" class="palette-item" onclick="reactPost(@post.Id, 'sad')" title="أحزنني">😢</button>
+                        <button type="button" class="palette-item" onclick="reactPost(@post.Id, 'angry')" title="أغضبني">😡</button>
+                    </div>
+                </div>
+
+                <!-- زر التعليقات -->
+                <button type="button" class="action-btn" onclick="toggleComments(@post.Id)">
+                    💬 تعليق (@item.Comments.Count)
+                </button>
+            </div>
+
+            <!-- قسم التعليقات -->
+            <div class="comments-section" id="comments-section-@post.Id">
+                <div class="comments-list">
+                    @foreach (var c in item.Comments)
+                    {
+                        var canDeleteComment = (c.Username == User.Identity!.Name || post.Username == User.Identity!.Name || User.IsInRole("Admin"));
+                        <div class="comment-item">
+                            <div class="comment-content">
+                                <strong>@c.Username:</strong> <span>@c.Content</span>
+                                <span class="comment-time">@c.CreatedAt.ToString("HH:mm")</span>
+                            </div>
+                            @if (canDeleteComment)
+                            {
+                                <form asp-controller="Posts" asp-action="DeletePostComment" asp-route-commentId="@c.Id" method="post" style="display:inline;">
+                                    <button type="submit" class="btn-delete-small" title="حذف التعليق">✕</button>
+                                </form>
+                            }
+                        </div>
+                    }
+                </div>
+
+                <form asp-controller="Posts" asp-action="AddPostComment" method="post" class="comment-form">
+                    <input type="hidden" name="postId" value="@post.Id" />
+                    <input type="text" name="content" class="form-input comment-input" placeholder="اكتب تعليقاً..." autocomplete="off" required />
+                    <button type="submit" class="btn-primary btn-comment-submit">إرسال</button>
+                </form>
+            </div>
         </div>
     }
 
-    @if (!Model.Any())
+    @if (!Model.Posts.Any())
     {
-        <p class="empty-msg">لسه مفيش بوستات، اعمل أول بوست 👆</p>
+        <p class="empty-msg">لسه مفيش بوستات، كن أول من ينشر 👆</p>
     }
 </div>
 
 <!-- Modal: بوست جديد -->
 <div id="postModal" class="modal-overlay">
     <div class="modal-box">
-        <h3>بوست جديد</h3>
+        <h3>📷 بوست جديد</h3>
         <form asp-controller="Posts" asp-action="CreatePost" method="post" enctype="multipart/form-data">
+            <label>اختر صورة</label>
             <input type="file" name="image" accept="image/*" required class="form-input" />
-            <textarea name="caption" class="form-textarea" rows="3" placeholder="اكتب تعليق..."></textarea>
+            <label>اكتب تعليق</label>
+            <textarea name="caption" class="form-textarea" rows="3" placeholder="ما الذي يدور في ذهنك؟"></textarea>
             <div class="modal-actions">
                 <button type="button" class="btn-secondary" onclick="document.getElementById('postModal').classList.remove('open')">إلغاء</button>
                 <button type="submit" class="btn-primary">نشر</button>
@@ -75,8 +172,9 @@
 <!-- Modal: ستوري جديد -->
 <div id="storyModal" class="modal-overlay">
     <div class="modal-box">
-        <h3>إضافة ستوري</h3>
+        <h3>🌟 إضافة ستوري (24 ساعة)</h3>
         <form asp-controller="Posts" asp-action="CreateStory" method="post" enctype="multipart/form-data">
+            <label>اختر صورة للستوري</label>
             <input type="file" name="image" accept="image/*" required class="form-input" />
             <div class="modal-actions">
                 <button type="button" class="btn-secondary" onclick="document.getElementById('storyModal').classList.remove('open')">إلغاء</button>
@@ -86,21 +184,250 @@
     </div>
 </div>
 
-<!-- Modal: عرض ستوري -->
+<!-- Modal: عارض ستوري متطور (Instagram Stories Viewer) -->
 <div id="storyViewer" class="modal-overlay">
-    <div class="story-viewer-box">
-        <span class="close-viewer" onclick="document.getElementById('storyViewer').classList.remove('open')">✕</span>
-        <div id="storyViewerUser" class="story-viewer-user"></div>
-        <img id="storyViewerImg" src="" />
+    <div class="story-viewer-card">
+        <!-- أشرطة التقدم العلوية -->
+        <div id="storySegments" class="story-segments"></div>
+
+        <!-- معلومات المستخدم وزر الحذف والإغلاق -->
+        <div class="story-viewer-topbar">
+            <div class="story-user-meta">
+                <strong id="storyViewerUsername"></strong>
+                <span id="storyViewerTime" class="story-meta-time"></span>
+            </div>
+            <div class="story-top-actions">
+                <form id="deleteStoryForm" asp-controller="Posts" asp-action="DeleteStory" method="post" style="display:none;"
+                      onsubmit="return confirm('هل تريد حذف هذه الستوري؟');">
+                    <input type="hidden" name="id" id="deleteStoryId" value="" />
+                    <button type="submit" class="btn-delete-story" title="حذف الستوري">🗑️ حذف</button>
+                </form>
+                <span class="close-viewer" onclick="closeStoryViewer()">✕</span>
+            </div>
+        </div>
+
+        <!-- منطقة الصورة والتنقل يمين / يسار -->
+        <div class="story-content-area">
+            <div class="story-nav-zone nav-left" onclick="prevStory()" title="السابق">‹</div>
+            <img id="storyViewerImg" src="" alt="Story content" />
+            <div class="story-nav-zone nav-right" onclick="nextStory()" title="التالي">›</div>
+        </div>
+
+        <!-- ردود وكومنتات الستوري السريعة -->
+        <div class="story-bottom-bar">
+            <div class="story-quick-reactions">
+                <button type="button" onclick="sendStoryQuickReaction('👍')">👍</button>
+                <button type="button" onclick="sendStoryQuickReaction('❤️')">❤️</button>
+                <button type="button" onclick="sendStoryQuickReaction('😂')">😂</button>
+                <button type="button" onclick="sendStoryQuickReaction('😢')">😢</button>
+                <button type="button" onclick="sendStoryQuickReaction('😡')">😡</button>
+            </div>
+            <div class="story-reply-row">
+                <input type="text" id="storyReplyInput" class="story-reply-input" placeholder="رد على الستوري..." autocomplete="off" />
+                <button type="button" id="storyReplyBtn" class="btn-story-send" onclick="sendStoryReply()">إرسال</button>
+            </div>
+            <div id="storyCommentsList" class="story-comments-list"></div>
+        </div>
     </div>
 </div>
 
 @section Scripts {
     <script>
-        function openStory(imagePath, username) {
-            document.getElementById('storyViewerImg').src = imagePath;
-            document.getElementById('storyViewerUser').textContent = username;
+        // البيانات ممررة ككائن JSON لتسهيل التنقل اللحظي بين الستوريهات
+        const storiesData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.GroupedStories));
+        const currentUser = "@User.Identity!.Name";
+        const isAdmin = @(User.IsInRole("Admin").ToString().ToLower());
+
+        let activeGroupIndex = 0;
+        let activeStoryIndex = 0;
+        let activeStoriesList = [];
+
+        function openUserStories(username) {
+            const groupIdx = storiesData.findIndex(g => g.Username === username);
+            if (groupIdx === -1) return;
+
+            activeGroupIndex = groupIdx;
+            activeStoryIndex = 0;
+            activeStoriesList = storiesData[groupIdx].Stories;
+
+            renderStory();
             document.getElementById('storyViewer').classList.add('open');
+        }
+
+        function closeStoryViewer() {
+            document.getElementById('storyViewer').classList.remove('open');
+        }
+
+        function renderStory() {
+            if (!activeStoriesList || activeStoriesList.length === 0) {
+                closeStoryViewer();
+                return;
+            }
+
+            const current = activeStoriesList[activeStoryIndex];
+            document.getElementById('storyViewerImg').src = current.ImagePath;
+            document.getElementById('storyViewerUsername').textContent = current.Username;
+            document.getElementById('storyViewerTime').textContent = current.TimeFormatted;
+
+            // أشرطة التقدم
+            const segmentsContainer = document.getElementById('storySegments');
+            segmentsContainer.innerHTML = '';
+            for (let i = 0; i < activeStoriesList.length; i++) {
+                const seg = document.createElement('div');
+                seg.className = 'story-seg ' + (i < activeStoryIndex ? 'completed' : i === activeStoryIndex ? 'active' : '');
+                segmentsContainer.appendChild(seg);
+            }
+
+            // زر الحذف
+            const deleteForm = document.getElementById('deleteStoryForm');
+            const deleteId = document.getElementById('deleteStoryId');
+            if (current.CanDelete) {
+                deleteId.value = current.Id;
+                deleteForm.style.display = 'inline-block';
+            } else {
+                deleteForm.style.display = 'none';
+            }
+
+            // تعليقات الستوري
+            renderStoryComments(current.Comments || []);
+        }
+
+        function nextStory() {
+            if (activeStoryIndex < activeStoriesList.length - 1) {
+                activeStoryIndex++;
+                renderStory();
+            } else {
+                // الانتقال لستوري المستخدم التالي
+                if (activeGroupIndex < storiesData.length - 1) {
+                    activeGroupIndex++;
+                    activeStoryIndex = 0;
+                    activeStoriesList = storiesData[activeGroupIndex].Stories;
+                    renderStory();
+                } else {
+                    closeStoryViewer();
+                }
+            }
+        }
+
+        function prevStory() {
+            if (activeStoryIndex > 0) {
+                activeStoryIndex--;
+                renderStory();
+            } else {
+                // الرجوع لستوري المستخدم السابق
+                if (activeGroupIndex > 0) {
+                    activeGroupIndex--;
+                    activeStoriesList = storiesData[activeGroupIndex].Stories;
+                    activeStoryIndex = activeStoriesList.length - 1;
+                    renderStory();
+                }
+            }
+        }
+
+        // تفاعل وإرسال رد على الستوري
+        async function sendStoryReply() {
+            const input = document.getElementById('storyReplyInput');
+            const text = input.value.trim();
+            if (!text) return;
+
+            const current = activeStoriesList[activeStoryIndex];
+            const formData = new FormData();
+            formData.append('storyId', current.Id);
+            formData.append('content', text);
+
+            try {
+                const res = await fetch('/Posts/AddStoryComment', { method: 'POST', body: formData });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (!current.Comments) current.Comments = [];
+                    current.Comments.push({ Username: data.username, Content: data.content, CreatedAt: data.time });
+                    renderStoryComments(current.Comments);
+                    input.value = '';
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function sendStoryQuickReaction(emoji) {
+            document.getElementById('storyReplyInput').value = emoji;
+            sendStoryReply();
+        }
+
+        function renderStoryComments(comments) {
+            const list = document.getElementById('storyCommentsList');
+            list.innerHTML = '';
+            if (!comments || comments.length === 0) return;
+
+            comments.slice(-3).forEach(c => {
+                const div = document.createElement('div');
+                div.className = 'story-comment-chip';
+                div.textContent = `${c.Username}: ${c.Content}`;
+                list.appendChild(div);
+            });
+        }
+
+        // -------- تفاعلات البوستات (Facebook Reactions) --------
+        async function reactPost(postId, reactionType) {
+            const formData = new FormData();
+            formData.append('postId', postId);
+            formData.append('reactionType', reactionType);
+
+            try {
+                const res = await fetch('/Posts/TogglePostReaction', { method: 'POST', body: formData });
+                if (res.ok) {
+                    const data = await res.json();
+                    updatePostReactionUI(postId, data.userReaction, data.counts);
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function quickReact(postId) {
+            const btn = document.getElementById(`react-btn-${postId}`);
+            if (btn.classList.contains('reacted-like')) {
+                reactPost(postId, 'like');
+            } else {
+                reactPost(postId, 'like');
+            }
+        }
+
+        function updatePostReactionUI(postId, userReaction, counts) {
+            const btn = document.getElementById(`react-btn-${postId}`);
+            const iconSpan = document.getElementById(`react-btn-icon-${postId}`);
+
+            btn.className = 'action-btn';
+            if (userReaction) {
+                btn.classList.add('reacted-' + userReaction);
+                const labels = { like: '👍 أعجبني', love: '❤️ لاف', haha: '😂 أضحكني', sad: '😢 أحزنني', angry: '😡 أغضبني' };
+                iconSpan.textContent = labels[userReaction] || '👍 تفاعل';
+            } else {
+                iconSpan.textContent = '👍 تفاعل';
+            }
+
+            // تحديث شريط ملخص التفاعلات
+            const summaryIcons = document.querySelector(`#reactions-summary-${postId} .reactions-icons`);
+            const summaryTotal = document.getElementById(`reactions-total-${postId}`);
+
+            let iconsHtml = '';
+            let total = 0;
+            const emojiMap = { like: '👍', love: '❤️', haha: '😂', sad: '😢', angry: '😡' };
+
+            for (const [type, count] of Object.entries(counts)) {
+                if (count > 0) {
+                    iconsHtml += `<span>${emojiMap[type] || ''}</span>`;
+                    total += count;
+                }
+            }
+
+            if (summaryIcons) summaryIcons.innerHTML = iconsHtml;
+            if (summaryTotal) summaryTotal.textContent = total > 0 ? total : '';
+        }
+
+        function toggleComments(postId) {
+            const section = document.getElementById(`comments-section-${postId}`);
+            section.classList.toggle('open');
         }
     </script>
 }

@@ -1,22 +1,34 @@
 @{
     ViewData["Title"] = "غرفة المشاهدة";
     var roomId = ViewBag.RoomId as string;
+    var isAdmin = User.IsInRole("Admin");
 }
 
-<h2>🎬 غرفة مشاهدة <span id="roomIdLabel">@roomId</span></h2>
-<div id="hostBadge" class="host-badge" style="display:none">👑 أنت المضيف - التحكم في الفيديو بإيدك</div>
-<div id="viewerNote" class="viewer-note" style="display:none">👀 المضيف هو اللي بيتحكم في تشغيل الفيديو</div>
+<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+    <h2>🎬 غرفة مشاهدة <span id="roomIdLabel">@roomId</span></h2>
+    <div style="display:flex; gap:8px;">
+        <button type="button" id="endSessionBtn" class="btn-delete" style="display:none; padding:8px 14px; font-size:13px;">
+            🛑 إنهاء الجلسة
+        </button>
+        <button type="button" id="leaveRoomBtn" class="btn-secondary" style="margin:0; padding:8px 14px;">
+            🚪 مغادرة الغرفة
+        </button>
+    </div>
+</div>
+
+<div class="host-badge" style="background:#e8f5e9; color:#2e7d32;">
+    ✨ التحكم تشاركي ومتاح للجميع: أي شخص في الغرفة يقدر يشغل، يوقف، يقدم، أو يغير الفيديو!
+</div>
 
 <div class="watch-layout">
     <div class="watch-main">
         <div id="playerWrapper" class="player-wrapper">
             <div id="player"></div>
-            <div id="playerOverlay" class="player-overlay" style="display:none"></div>
         </div>
 
-        <form id="changeVideoForm" class="change-video-row" style="display:none">
-            <input id="newVideoUrlInput" class="form-input" placeholder="رابط فيديو يوتيوب جديد..." />
-            <button type="submit" class="btn-secondary">غيّر الفيديو</button>
+        <form id="changeVideoForm" class="change-video-row" style="margin-top:12px;">
+            <input id="newVideoUrlInput" class="form-input" placeholder="ألصق رابط فيديو يوتيوب جديد للتغيير..." autocomplete="off" />
+            <button type="submit" class="btn-primary" style="width:auto;">غيّر الفيديو للجميع 🎬</button>
         </form>
     </div>
 
@@ -36,14 +48,11 @@
     </div>
 </div>
 
-<a asp-controller="Watch" asp-action="Index" class="btn-secondary" style="display:inline-block;margin-top:14px;">
-    رجوع للوبي
-</a>
-
 @section Scripts {
     <script>
         const roomId = "@roomId";
         const currentUser = "@User.Identity!.Name";
+        const isAdmin = @(isAdmin.ToString().ToLower());
     </script>
     <script src="https://www.youtube.com/iframe_api"></script>
     <script src="~/js/watch/room.js"></script>

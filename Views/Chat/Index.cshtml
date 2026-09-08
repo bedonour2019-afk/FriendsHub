@@ -1,17 +1,28 @@
-@model List<ChatMessage>
+@model List<FriendsHub.Models.ChatMessageItemViewModel>
 @{
     ViewData["Title"] = "الشات";
+    var currentUser = User.Identity!.Name;
+    var isAdmin = User.IsInRole("Admin");
 }
 
 <div class="chat-wrapper">
-    <div class="chat-header">💬 شات الجروب</div>
+    <div class="chat-header" style="display:flex; justify-content:space-between; align-items:center;">
+        <div>💬 شات الجروب</div>
+        <div style="display:flex; gap:10px;">
+            <button type="button" id="startAudioCallBtn" class="icon-btn" title="مكالمة صوتية">📞</button>
+            <button type="button" id="startVideoCallBtn" class="icon-btn" title="مكالمة فيديو">📹</button>
+        </div>
+    </div>
 
     <div id="messagesBox" class="chat-messages">
-        @foreach (var msg in Model)
+        @foreach (var item in Model)
         {
-            var mine = msg.Username == User.Identity!.Name ? "mine" : "";
-            <div class="chat-bubble-row @mine">
-                <div class="chat-bubble @mine @(msg.Type == "sticker" ? "sticker-bubble" : "")">
+            var msg = item.Message;
+            var mine = msg.Username == currentUser ? "mine" : "";
+            var totalReactions = item.ReactionCounts.Values.Sum();
+
+            <div class="chat-bubble-row @mine" id="msg-row-@msg.Id">
+                <div class="chat-bubble @mine @(msg.Type == "sticker" ? "sticker-bubble" : "")" id="msg-bubble-@msg.Id">
                     <div class="bubble-sender">@msg.Username</div>
 
                     @if (msg.Type == "text")
@@ -24,14 +35,48 @@
                     }
                     else if (msg.Type == "image")
                     {
-                        <img class="bubble-image" src="@msg.FilePath" />
+                        <img class="bubble-image" src="@msg.FilePath" alt="Chat attachment" />
                     }
                     else if (msg.Type == "audio")
                     {
                         <audio class="bubble-audio" controls src="@msg.FilePath"></audio>
                     }
 
-                    <div class="bubble-time">@msg.SentAt.ToString("HH:mm")</div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:2px;">
+                        <div class="bubble-time">@msg.SentAt.ToString("HH:mm")</div>
+
+                        <div class="chat-bubble-actions">
+                            <!-- ريأكتات الرسالة -->
+                            <div class="msg-reactions-row" id="msg-reactions-@msg.Id">
+                                @if (totalReactions > 0)
+                                {
+                                    @if (item.ReactionCounts.ContainsKey("like") && item.ReactionCounts["like"] > 0) { <span>👍</span> }
+                                    @if (item.ReactionCounts.ContainsKey("love") && item.ReactionCounts["love"] > 0) { <span>❤️</span> }
+                                    @if (item.ReactionCounts.ContainsKey("haha") && item.ReactionCounts["haha"] > 0) { <span>😂</span> }
+                                    @if (item.ReactionCounts.ContainsKey("sad") && item.ReactionCounts["sad"] > 0) { <span>😢</span> }
+                                    @if (item.ReactionCounts.ContainsKey("angry") && item.ReactionCounts["angry"] > 0) { <span>😡</span> }
+                                    <span>@totalReactions</span>
+                                }
+                            </div>
+
+                            <!-- باليتة تفاعل سريعة للرسالة -->
+                            <span class="reaction-btn-wrapper" style="position:relative; display:inline-block;">
+                                <button type="button" class="msg-reaction-btn" title="تفاعل">➕</button>
+                                <div class="reactions-palette" style="right:0;">
+                                    <button type="button" class="palette-item" onclick="reactMessage(@msg.Id, 'like')">👍</button>
+                                    <button type="button" class="palette-item" onclick="reactMessage(@msg.Id, 'love')">❤️</button>
+                                    <button type="button" class="palette-item" onclick="reactMessage(@msg.Id, 'haha')">😂</button>
+                                    <button type="button" class="palette-item" onclick="reactMessage(@msg.Id, 'sad')">😢</button>
+                                    <button type="button" class="palette-item" onclick="reactMessage(@msg.Id, 'angry')">😡</button>
+                                </div>
+                            </span>
+
+                            @if (item.CanDelete)
+                            {
+                                <button type="button" class="btn-msg-delete" onclick="deleteMessage(@msg.Id)" title="حذف الرسالة">🗑️</button>
+                            }
+                        </div>
+                    </div>
                 </div>
             </div>
         }
@@ -39,6 +84,14 @@
 
     <div id="emojiPanel" class="picker-panel"></div>
     <div id="stickerPanel" class="picker-panel"></div>
+
+    <!-- قسم المنشورات الحديثة -->
+    <div style="background: #0f3460; padding: 12px; border-top: 1px solid #30475e;">
+        <h4 style="margin: 0 0 10px 0; color: #e0e0e0; font-size: 14px;">📰 المنشورات الحديثة</h4>
+        <div id="recentPosts" style="max-height: 150px; overflow-y: auto;">
+            <p style="color: #a0a0a0; font-size: 12px; text-align: center;">جاري التحميل...</p>
+        </div>
+    </div>
 
     <form id="sendForm" class="chat-input-row">
         <button type="button" id="emojiBtn" class="icon-btn" title="إيموجي">😀</button>
@@ -53,9 +106,50 @@
     <div id="recordingIndicator" class="recording-indicator" style="display:none">🔴 جاري التسجيل... اضغط على المايك تاني للإيقاف والإرسال</div>
 </div>
 
+<!-- -------- نافذة مكالمة جارية (WebRTC Active Call) -------- -->
+<div id="callModal" class="call-modal">
+    <div class="call-box">
+        <h3 id="callStatusTitle">📞 مكالمة جارية</h3>
+        <p id="callParticipantLabel" style="color:#aaa; font-size:13px;"></p>
+
+        <div class="call-videos-grid">
+            <div class="video-tile">
+                <video id="localVideo" autoplay playsinline muted></video>
+                <div class="video-tile-label">أنت</div>
+            </div>
+            <div class="video-tile">
+                <video id="remoteVideo" autoplay playsinline></video>
+                <div class="video-tile-label" id="remoteUserLabel">المتصل</div>
+            </div>
+        </div>
+
+        <div class="call-controls">
+            <button type="button" id="muteAudioBtn" class="call-btn call-btn-mute" title="كتم الصوت">🎤</button>
+            <button type="button" id="toggleVideoBtn" class="call-btn call-btn-mute" title="قفل الكاميرا">📹</button>
+            <button type="button" id="endCallBtn" class="call-btn call-btn-end" title="إنهاء المكالمة">❌</button>
+        </div>
+    </div>
+</div>
+
+<!-- -------- نافذة مكالمة واردة (Incoming Call Modal) -------- -->
+<div id="incomingCallModal" class="call-modal">
+    <div class="incoming-call-box">
+        <div style="font-size:48px; margin-bottom:10px;">📲</div>
+        <h3>مكالمة واردة</h3>
+        <p id="incomingCallerName" style="font-size:16px; font-weight:bold; color:#2575fc;"></p>
+        <p id="incomingCallTypeLabel" style="color:#666; font-size:13px;"></p>
+
+        <div class="incoming-call-actions">
+            <button type="button" id="acceptCallBtn" class="btn-accept-call">قبول 📞</button>
+            <button type="button" id="rejectCallBtn" class="btn-reject-call">رفض ❌</button>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script>
-        const currentUser = "@User.Identity!.Name";
+        const currentUser = "@currentUser";
+        const isAdmin = @(isAdmin.ToString().ToLower());
     </script>
     <script src="~/js/chat.js"></script>
 }

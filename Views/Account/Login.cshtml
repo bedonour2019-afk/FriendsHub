@@ -6,6 +6,13 @@
 <div class="auth-box">
     <h2>تسجيل دخول المستخدمين</h2>
 
+    @if (TempData["Success"] != null)
+    {
+        <div style="background:#e8f5e9; color:#2e7d32; padding:10px 14px; border-radius:8px; margin-bottom:12px; font-size:13px;">
+            @TempData["Success"]
+        </div>
+    }
+
     @if (!string.IsNullOrEmpty(Model.ErrorMessage))
     {
         <div class="alert-error">@Model.ErrorMessage</div>
@@ -14,7 +21,7 @@
     <form asp-controller="Account" asp-action="Login" method="post">
         <div asp-validation-summary="ModelOnly" class="alert-error"></div>
 
-        <label asp-for="Username"></label>
+        <label asp-for="Username">اسم المستخدم أو البريد الإلكتروني</label>
         <input asp-for="Username" class="form-input" autofocus />
         <span asp-validation-for="Username" class="field-error"></span>
 
@@ -22,11 +29,17 @@
         <input asp-for="Password" type="password" class="form-input" />
         <span asp-validation-for="Password" class="field-error"></span>
 
+        <div style="text-align:left; margin-bottom:12px;">
+            <a asp-controller="Account" asp-action="ForgotPassword" style="font-size:12px; color:#2575fc; text-decoration:none;">
+                هل نسيت كلمة المرور؟
+            </a>
+        </div>
+
         <button type="submit" class="btn-primary">دخول</button>
     </form>
 
     <p class="switch-link">
-        مستخدم جديد؟ <a asp-controller="Account" asp-action="Register">اعمل حساب</a>
+        مستخدم جديد؟ <a asp-controller="Account" asp-action="Register">اعمل حساب بالجيميل</a>
     </p>
     <p class="switch-link">
         أنت أدمن؟ <a asp-controller="Account" asp-action="AdminLogin">ادخل من هنا</a>

@@ -8,10 +8,12 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Add services to the container.
 builder.Services.AddControllersWithViews();
 builder.Services.AddSignalR();
 builder.Services.AddSingleton<GameRoomManager>();
 builder.Services.AddSingleton<WatchPartyManager>();
+builder.Services.AddScoped<NotificationService>();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -29,11 +31,20 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
-// إنشاء قاعدة البيانات وعمل أدمن افتراضي أول ما السيرفر يشتغل
+// Ensure upload directories exist
+var env = app.Services.GetRequiredService<IWebHostEnvironment>();
+var uploadDirs = new[] { "profiles", "posts", "stories", "chat", "privatechat" };
+foreach (var dir in uploadDirs)
+{
+    var path = Path.Combine(env.WebRootPath, "uploads", dir);
+    Directory.CreateDirectory(path);
+}
+
+// Seed Database
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.EnsureCreated();
+    DbInitializer.Initialize(db);
 
     if (!db.Users.Any(u => u.Role == "Admin"))
     {
@@ -41,7 +52,7 @@ using (var scope = app.Services.CreateScope())
         var seedUsername = builder.Configuration["SeedAdmin:Username"] ?? "admin";
         var seedPassword = builder.Configuration["SeedAdmin:Password"] ?? "Admin@123";
 
-        var admin = new AppUser { Username = seedUsername, Role = "Admin" };
+        var admin = new AppUser { Username = seedUsername, Email = "admin@friendshub.com", Role = "Admin" };
         admin.PasswordHash = hasher.HashPassword(admin, seedPassword);
 
         db.Users.Add(admin);
@@ -56,7 +67,10 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// تفعيل الملفات الثابتة بشكل قياسي تلقائي
 app.UseStaticFiles();
+
 app.UseRouting();
 
 app.UseAuthentication();
@@ -69,5 +83,8 @@ app.MapControllerRoute(
 app.MapHub<ChatHub>("/chatHub");
 app.MapHub<GamesHub>("/gamesHub");
 app.MapHub<WatchPartyHub>("/watchPartyHub");
+app.MapHub<NotificationHub>("/notificationHub");
+app.MapHub<PresenceHub>("/presenceHub");
+app.MapHub<PrivateChatHub>("/privateChatHub");
 
 app.Run();

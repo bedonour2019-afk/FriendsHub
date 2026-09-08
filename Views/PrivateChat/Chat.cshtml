@@ -1,0 +1,63 @@
+@model List<FriendsHub.Models.PrivateChatMessage>
+@{
+    ViewData["Title"] = "شات خاص";
+    var chatId = ViewBag.ChatId;
+    var otherUser = ViewBag.OtherUser;
+    var profilePicture = ViewBag.ProfilePicture;
+    var currentUser = ViewBag.CurrentUser;
+}
+
+<div class="chat-wrapper">
+    <div class="chat-header" style="display: flex; align-items: center; gap: 12px;">
+        <a href="/PrivateChat/Index" style="color: #fff; text-decoration: none; font-size: 18px;">←</a>
+        <img src="@profilePicture" alt="@otherUser" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #2575fc;" />
+        <div>
+            <div style="font-weight: bold;">@otherUser</div>
+            <div style="font-size: 12px; opacity: 0.8;">محادثة خاصة</div>
+        </div>
+    </div>
+
+    <div id="messagesBox" class="chat-messages">
+        @foreach (var msg in Model)
+        {
+            var mine = msg.SenderUsername == currentUser ? "mine" : "";
+            <div class="chat-bubble-row @mine">
+                <div class="chat-bubble @mine">
+                    @if (msg.Type == "text")
+                    {
+                        <div class="bubble-text">@msg.Content</div>
+                    }
+                    else if (msg.Type == "image")
+                    {
+                        <img class="bubble-image" src="@msg.FilePath" alt="Image" />
+                    }
+                    else if (msg.Type == "audio")
+                    {
+                        <audio class="bubble-audio" controls src="@msg.FilePath"></audio>
+                    }
+
+                    <div class="bubble-time">@msg.SentAt.ToString("HH:mm")</div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <form id="sendForm" class="chat-input-row">
+        <button type="button" id="imageBtn" class="icon-btn" title="صورة">🖼️</button>
+        <input type="file" id="imageInput" accept="image/*" hidden />
+        <button type="button" id="micBtn" class="icon-btn" title="تسجيل صوتي">🎤</button>
+
+        <input id="messageInput" class="form-input" placeholder="اكتب رسالتك..." autocomplete="off" />
+        <button type="submit" class="btn-primary">إرسال</button>
+    </form>
+    <div id="recordingIndicator" class="recording-indicator" style="display:none">🔴 جاري التسجيل... اضغط على المايك تاني للإيقاف والإرسال</div>
+</div>
+
+@section Scripts {
+    <script>
+        const chatId = @chatId;
+        const currentUser = "@currentUser";
+        const otherUser = "@otherUser";
+    </script>
+    <script src="~/js/privatechat.js"></script>
+}

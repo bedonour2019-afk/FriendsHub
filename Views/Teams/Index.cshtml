@@ -7,13 +7,46 @@
 
 <div asp-validation-summary="All" class="alert-error"></div>
 
+<!-- الفرق المثبتة -->
+@if (ViewBag.PinnedTeams != null && ((List<FriendsHub.Models.Team>)ViewBag.PinnedTeams).Count > 0)
+{
+    <div style="margin-bottom: 20px;">
+        <h3 style="color: #e0e0e0; margin-bottom: 10px;">📌 الفرق المثبتة</h3>
+        @foreach (var team in (List<FriendsHub.Models.Team>)ViewBag.PinnedTeams)
+        {
+            <div style="background: #16213e; padding: 15px; border-radius: 10px; margin-bottom: 10px; border: 2px solid #2575fc;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <div style="color: #a0a0a0; font-size: 12px;">أنشأه: @team.CreatorUsername | @team.CreatedAt.ToString("dd/MM/yyyy HH:mm")</div>
+                    <form asp-action="UnpinTeam" method="post" style="display:inline;">
+                        <input type="hidden" name="id" value="@team.Id" />
+                        <button type="submit" class="btn-delete">إلغاء التثبيت</button>
+                    </form>
+                </div>
+                <div style="display: flex; gap: 20px;">
+                    <div style="flex: 1;">
+                        <h4 style="color: #2575fc; margin: 0 0 5px;">الفريق الأول 🔵</h4>
+                        <p style="color: #e0e0e0; margin: 0;">@team.TeamA_Members</p>
+                    </div>
+                    <div style="flex: 1;">
+                        <h4 style="color: #e0245e; margin: 0 0 5px;">الفريق الثاني 🔴</h4>
+                        <p style="color: #e0e0e0; margin: 0;">@team.TeamB_Members</p>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
 <form asp-controller="Teams" asp-action="Index" method="post" class="teams-form">
     <label>اكتب الأسماء (كل اسم في سطر)</label>
     <textarea name="NamesRaw" class="form-textarea" rows="8" placeholder="أحمد
 محمد
 سارة
 عمر">@ViewBag.NamesRaw</textarea>
-    <button type="submit" class="btn-primary">قسّم الفرق 🎲</button>
+    <div style="display: flex; gap: 10px;">
+        <button type="submit" name="pinTeam" value="false" class="btn-primary" style="flex: 1;">قسّم الفرق 🎲</button>
+        <button type="submit" name="pinTeam" value="true" class="btn-primary" style="flex: 1; background: #2575fc;">قسّم وثبّت الفريق 📌</button>
+    </div>
 </form>
 
 @if (Model.TeamA.Count > 0 || Model.TeamB.Count > 0)

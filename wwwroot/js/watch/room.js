@@ -6,9 +6,8 @@
     let hostUsername = null;
     let suppressEvents = false;
 
-    const hostBadge = document.getElementById("hostBadge");
-    const viewerNote = document.getElementById("viewerNote");
-    const playerOverlay = document.getElementById("playerOverlay");
+    const endSessionBtn = document.getElementById("endSessionBtn");
+    const leaveRoomBtn = document.getElementById("leaveRoomBtn");
     const changeVideoForm = document.getElementById("changeVideoForm");
     const participantsList = document.getElementById("participantsList");
     const participantsCount = document.getElementById("participantsCount");
@@ -45,14 +44,28 @@
     connection.on("Heartbeat", (time) => {
         if (!player || typeof player.getCurrentTime !== "function") return;
         const diff = Math.abs(player.getCurrentTime() - time);
-        if (diff > 2) {
+        if (diff > 3) {
             suppressEvents = true;
             player.seekTo(time, true);
         }
     });
 
+    // استلام تغيير الفيديو
     connection.on("VideoChanged", (videoId) => {
-        if (player) player.loadVideoById(videoId);
+        if (player && typeof player.loadVideoById === "function") {
+            suppressEvents = true;
+            player.loadVideoById({
+                videoId: videoId,
+                startSeconds: 0
+            });
+            player.playVideo();
+        }
+    });
+
+    // إغلاق الجلسة
+    connection.on("RoomEnded", (msg) => {
+        alert(msg || "تم إنهاء الجلسة.");
+        window.location.href = "/Watch";
     });
 
     connection.on("ParticipantsUpdated", renderParticipants);
@@ -72,12 +85,8 @@
 
             renderParticipants(result.room.participants);
 
-            if (isHost) {
-                hostBadge.style.display = "block";
-                changeVideoForm.style.display = "flex";
-            } else {
-                viewerNote.style.display = "block";
-                playerOverlay.style.display = "block";
+            if (isHost || isAdmin) {
+                endSessionBtn.style.display = "inline-block";
             }
 
             tryInitPlayer();
@@ -95,10 +104,14 @@
 
         const room = joinResult.room;
         player = new YT.Player("player", {
-            height: "390",
+            height: "420",
             width: "100%",
             videoId: room.videoId,
-            playerVars: { rel: 0 },
+            playerVars: {
+                rel: 0,
+                autoplay: 1,
+                modestbranding: 1
+            },
             events: {
                 onReady: (e) => {
                     if (room.currentTime > 0) e.target.seekTo(room.currentTime, true);
@@ -109,15 +122,16 @@
         });
     }
 
+    // التحكم متاح للجميع
     function onPlayerStateChange(event) {
-        if (!isHost) return;
-
         if (suppressEvents) {
             suppressEvents = false;
             return;
         }
 
+        if (!player || typeof player.getCurrentTime !== "function") return;
         const time = player.getCurrentTime();
+
         if (event.data === YT.PlayerState.PLAYING) {
             connection.invoke("PlayVideo", roomId, time).catch(err => console.error(err));
         } else if (event.data === YT.PlayerState.PAUSED) {
@@ -125,21 +139,44 @@
         }
     }
 
+    // إرسال نبضات المزامنة الدورية
     setInterval(() => {
-        if (isHost && player && typeof player.getPlayerState === "function"
+        if (player && typeof player.getPlayerState === "function"
             && player.getPlayerState() === YT.PlayerState.PLAYING) {
             connection.invoke("Heartbeat", roomId, player.getCurrentTime()).catch(err => console.error(err));
         }
     }, 5000);
 
-    // -------- تغيير الفيديو (المضيف بس) --------
+    // -------- تغيير الفيديو (متاح للجميع) --------
     changeVideoForm.addEventListener("submit", (e) => {
         e.preventDefault();
         const input = document.getElementById("newVideoUrlInput");
         const url = input.value.trim();
         if (!url) return;
-        connection.invoke("ChangeVideo", roomId, url).catch(err => console.error(err));
-        input.value = "";
+
+        connection.invoke("ChangeVideo", roomId, url)
+            .then(() => {
+                input.value = "";
+            })
+            .catch(err => alert("حدث خطأ أثناء تغيير الفيديو: " + err));
+    });
+
+    // -------- إنهاء الجلسة --------
+    endSessionBtn.addEventListener("click", () => {
+        if (confirm("هل أنت متأكد من إنهاء جلسة المشاهدة وإغلاق الغرفة للجميع؟")) {
+            connection.invoke("EndSession", roomId).catch(err => console.error(err));
+        }
+    });
+
+    // -------- مغادرة الغرفة --------
+    leaveRoomBtn.addEventListener("click", () => {
+        connection.invoke("LeaveRoom", roomId)
+            .then(() => {
+                window.location.href = "/Watch";
+            })
+            .catch(() => {
+                window.location.href = "/Watch";
+            });
     });
 
     // -------- قائمة المشاهدين --------

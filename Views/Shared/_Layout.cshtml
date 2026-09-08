@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>FriendsHub</title>
-    <link rel="stylesheet" href="/css/site.css" />
+    <link rel="stylesheet" href="~/css/site.css" />
 </head>
 <body>
     @if (User.Identity != null && User.Identity.IsAuthenticated)
@@ -15,13 +15,52 @@
                 <a asp-controller="Home" asp-action="Index">الرئيسية</a>
                 <a asp-controller="Chat" asp-action="Index">الشات</a>
                 <a asp-controller="Teams" asp-action="Index">تقسيم الفرق</a>
-                <a asp-controller="Posts" asp-action="Index">البوستات</a>
+                <a asp-controller="Posts" asp-action="Index">البوستات والستوري</a>
                 <a asp-controller="Watch" asp-action="Index">مشاهدة جماعية</a>
                 <a asp-controller="Games" asp-action="Index">الألعاب</a>
+                @if (User.IsInRole("Admin"))
+                {
+                    <a asp-controller="Admin" asp-action="Index" style="color:#ffd700; font-weight:bold;">⚙️ لوحة الأدمن</a>
+                }
             </div>
+
             <div class="nav-user">
+                <!-- جرس الإشعارات -->
+                <div class="nav-notif-wrapper">
+                    <button type="button" id="notifBellBtn" class="notif-bell-btn" title="الإشعارات">
+                        🔔
+                        <span id="notifBadge" class="notif-badge" style="display:none;">0</span>
+                    </button>
+                    <div id="notifDropdown" class="notif-dropdown">
+                        <div class="notif-header">
+                            <span>الإشعارات</span>
+                            <button type="button" class="btn-mark-all-read" onclick="markAllNotificationsRead()">تحديد الكل كمقروء</button>
+                        </div>
+                        <div id="notifItemsList" class="notif-items-list">
+                            <p style="padding:14px; text-align:center; color:#888; font-size:12px;">مفيش إشعارات جديدة</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- المستخدمين الأونلاين -->
+                <div class="nav-online-wrapper">
+                    <button type="button" id="onlineUsersBtn" class="notif-bell-btn" title="المستخدمين الأونلاين">
+                        👥
+                        <span id="onlineBadge" class="notif-badge" style="display:none;">0</span>
+                    </button>
+                    <div id="onlineDropdown" class="notif-dropdown">
+                        <div class="notif-header">
+                            <span>المستخدمين الأونلاين</span>
+                        </div>
+                        <div id="onlineUsersList" class="notif-items-list">
+                            <p style="padding:14px; text-align:center; color:#888; font-size:12px;">جاري التحميل...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <a asp-controller="Account" asp-action="Settings" style="color: #fff; text-decoration: none; font-size: 14px;">⚙️ الإعدادات</a>
                 <span>👤 @User.Identity.Name @(User.IsInRole("Admin") ? "(أدمن)" : "")</span>
-                <form asp-controller="Account" asp-action="Logout" method="post">
+                <form asp-controller="Account" asp-action="Logout" method="post" style="display:inline;">
                     <button type="submit" class="btn-link">خروج</button>
                 </form>
             </div>
@@ -33,18 +72,217 @@
     </main>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
-    <script src="/js/site.js"></script>
-    @RenderSection("Scripts", required: false)
+    <script src="~/js/site.js"></script>
 
-    <!-- OneSignal Web Push SDK -->
-    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-    <script>
-            window.OneSignalDeferred = window.OneSignalDeferred || [];
-            OneSignalDeferred.push(async function(OneSignal) {
-              await OneSignal.init({
-                appId: "4a3cf552-6b9b-4cc7-a0f9-b1dc29a80960",
-              });
-            });
-    </script>
+    @if (User.Identity != null && User.Identity.IsAuthenticated)
+    {
+        <script>
+            // نظام الإشعارات اللحظية والمتصفح
+            (function () {
+                const notifBellBtn = document.getElementById("notifBellBtn");
+                const notifDropdown = document.getElementById("notifDropdown");
+                const notifBadge = document.getElementById("notifBadge");
+                const notifItemsList = document.getElementById("notifItemsList");
+
+                if (!notifBellBtn) return;
+
+                // طلب إذن إشعارات المتصفح
+                if ("Notification" in window && Notification.permission === "default") {
+                    Notification.requestPermission();
+                }
+
+                // فتح وإغلاق القائمة المنسدلة
+                notifBellBtn.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    notifDropdown.classList.toggle("open");
+                    if (notifDropdown.classList.contains("open")) {
+                        loadNotifications();
+                    }
+                });
+
+                document.addEventListener("click", (e) => {
+                    if (!notifDropdown.contains(e.target) && e.target !== notifBellBtn) {
+                        notifDropdown.classList.remove("open");
+                    }
+                });
+
+                // الاتصال بـ NotificationHub
+                const notifConn = new signalR.HubConnectionBuilder()
+                    .withUrl("/notificationHub")
+                    .withAutomaticReconnect()
+                    .build();
+
+                notifConn.on("ReceiveNotification", function (n) {
+                    // تحديث العداد
+                    let count = parseInt(notifBadge.textContent || "0") + 1;
+                    notifBadge.textContent = count;
+                    notifBadge.style.display = "inline-block";
+
+                    // إشعار المتصفح
+                    if ("Notification" in window && Notification.permission === "granted") {
+                        new Notification(n.title, {
+                            body: n.message,
+                            icon: "/favicon.ico"
+                        });
+                    }
+                });
+
+                notifConn.start().catch(err => console.error("NotificationHub err:", err));
+
+                window.loadNotifications = async function () {
+                    try {
+                        const res = await fetch("/Notifications/GetRecent");
+                        if (!res.ok) return;
+                        const data = await res.json();
+
+                        if (data.unreadCount > 0) {
+                            notifBadge.textContent = data.unreadCount;
+                            notifBadge.style.display = "inline-block";
+                        } else {
+                            notifBadge.style.display = "none";
+                        }
+
+                        if (!data.notifications || data.notifications.length === 0) {
+                            notifItemsList.innerHTML = '<p style="padding:14px; text-align:center; color:#888; font-size:12px;">مفيش إشعارات جديدة</p>';
+                            return;
+                        }
+
+                        let html = '';
+                        data.notifications.forEach(item => {
+                            html += `
+                                <a href="${item.linkUrl || '#'}" class="notif-item ${item.isRead ? '' : 'unread'}" onclick="markNotifRead(${item.id})">
+                                    <div class="notif-item-title">${item.title}</div>
+                                    <div>${item.message}</div>
+                                    <div class="notif-item-time">${item.time}</div>
+                                </a>
+                            `;
+                        });
+                        notifItemsList.innerHTML = html;
+                    } catch (e) {
+                        console.error(e);
+                    }
+                };
+
+                window.markAllNotificationsRead = async function () {
+                    await fetch("/Notifications/MarkAllAsRead", { method: "POST" });
+                    notifBadge.style.display = "none";
+                    notifBadge.textContent = "0";
+                    loadNotifications();
+                };
+
+                window.markNotifRead = async function (id) {
+                    await fetch(`/Notifications/MarkAsRead?id=${id}`, { method: "POST" });
+                };
+
+                // فحص مبدئي للعداد
+                loadNotifications();
+            })();
+
+            // نظام المستخدمين الأونلاين
+            (function () {
+                const onlineUsersBtn = document.getElementById("onlineUsersBtn");
+                const onlineDropdown = document.getElementById("onlineDropdown");
+                const onlineBadge = document.getElementById("onlineBadge");
+                const onlineUsersList = document.getElementById("onlineUsersList");
+
+                if (!onlineUsersBtn) return;
+
+                // فتح وإغلاق القائمة المنسدلة
+                onlineUsersBtn.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    onlineDropdown.classList.toggle("open");
+                    if (onlineDropdown.classList.contains("open")) {
+                        loadOnlineUsers();
+                    }
+                });
+
+                document.addEventListener("click", (e) => {
+                    if (!onlineDropdown.contains(e.target) && e.target !== onlineUsersBtn) {
+                        onlineDropdown.classList.remove("open");
+                    }
+                });
+
+                // الاتصال بـ PresenceHub
+                const presenceConn = new signalR.HubConnectionBuilder()
+                    .withUrl("/presenceHub")
+                    .withAutomaticReconnect()
+                    .build();
+
+                presenceConn.on("UserOnline", function (username) {
+                    loadOnlineUsers();
+                });
+
+                presenceConn.on("UserOffline", function (username) {
+                    loadOnlineUsers();
+                });
+
+                presenceConn.start().catch(err => console.error("PresenceHub err:", err));
+
+                window.loadOnlineUsers = async function () {
+                    try {
+                        const res = await fetch("/Users/GetOnlineUsers");
+                        if (!res.ok) return;
+                        const users = await res.json();
+
+                        const onlineCount = users.filter(u => u.isOnline).length;
+                        if (onlineCount > 0) {
+                            onlineBadge.textContent = onlineCount;
+                            onlineBadge.style.display = "inline-block";
+                        } else {
+                            onlineBadge.style.display = "none";
+                        }
+
+                        if (!users || users.length === 0) {
+                            onlineUsersList.innerHTML = '<p style="padding:14px; text-align:center; color:#888; font-size:12px;">مفيش مستخدمين</p>';
+                            return;
+                        }
+
+                        let html = '';
+                        users.forEach(user => {
+                            const profilePic = user.profilePicture || '/uploads/profiles/default.png';
+                            const statusText = user.isOnline ? 'أونلاين' : `آخر ظهور: ${new Date(user.lastSeen).toLocaleTimeString('ar-EG')}`;
+                            const statusDot = user.isOnline ? 'online-status-dot' : 'offline-status-dot';
+
+                            html += `
+                                <div class="online-user-item" onclick="showUserActions('${user.username}', ${user.id})">
+                                    <img src="${profilePic}" alt="${user.username}" class="online-user-avatar" />
+                                    <div class="online-user-info">
+                                        <div class="online-user-name">${user.username}</div>
+                                        <div class="online-user-status">
+                                            <span class="${statusDot}"></span> ${statusText}
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        onlineUsersList.innerHTML = html;
+                    } catch (e) {
+                        console.error(e);
+                    }
+                };
+
+                window.showUserActions = function (username, userId) {
+                    const modal = document.createElement('div');
+                    modal.className = 'modal-overlay open';
+                    modal.innerHTML = `
+                        <div class="modal-box">
+                            <h3 style="text-align: center; margin-bottom: 20px;">${username}</h3>
+                            <div style="display: flex; flex-direction: column; gap: 10px;">
+                                <button onclick="window.location.href='/PrivateChat/StartChat?username=${username}'; this.closest('.modal-overlay').remove();" class="btn-primary">إرسال رسالة خاصة 💬</button>
+                                <button onclick="window.location.href='/Profile/Index?username=${username}'; this.closest('.modal-overlay').remove();" class="btn-secondary">زيارة الملف الشخصي 👤</button>
+                                <button onclick="this.closest('.modal-overlay').remove();" class="btn-secondary">إلغاء</button>
+                            </div>
+                        </div>
+                    `;
+                    document.body.appendChild(modal);
+                };
+
+                // فحص مبدئي
+                loadOnlineUsers();
+            })();
+        </script>
+    }
+
+    @RenderSection("Scripts", required: false)
 </body>
 </html>

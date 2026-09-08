@@ -5,12 +5,86 @@
 <h2>🎮 الألعاب</h2>
 
 <div class="cards-grid">
-    <a class="dash-card" asp-controller="Games" asp-action="TicTacToe">
+    <a class="dash-card" asp-controller="Games" asp-action="TicTacToe" style="max-width:320px;">
         <div class="dash-icon">❌⭕</div>
         <div>إكس أو أونلاين (تحدي حد لايف)</div>
     </a>
-    <a class="dash-card" asp-controller="Games" asp-action="Memory">
-        <div class="dash-icon">🃏</div>
-        <div>لعبة الذاكرة (طابق الصور)</div>
-    </a>
 </div>
+
+<!-- شات جماعي الألعاب -->
+<div class="chat-wrapper" style="margin-top: 30px;">
+    <div class="chat-header">
+        <div>💬 شات الألعاب الجماعي</div>
+    </div>
+
+    <div id="gamesChatMessages" class="chat-messages">
+        <p style="text-align: center; color: #a0a0a0; margin-top: 40px;">شات الألعاب - تكلم مع اللاعبين</p>
+    </div>
+
+    <form id="gamesChatForm" class="chat-input-row">
+        <input id="gamesChatInput" class="form-input" placeholder="اكتب رسالتك في شات الألعاب..." autocomplete="off" />
+        <button type="submit" class="btn-primary">إرسال</button>
+    </form>
+</div>
+
+@section Scripts {
+    <script>
+        const gamesChatMessages = document.getElementById('gamesChatMessages');
+        const gamesChatForm = document.getElementById('gamesChatForm');
+        const gamesChatInput = document.getElementById('gamesChatInput');
+
+        // استخدام نفس Hub الخاص بالشات العام للشات الجماعي
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/chatHub")
+            .withAutomaticReconnect()
+            .build();
+
+        connection.on("ReceiveMessage", function (message) {
+            addGamesChatMessage(message);
+        });
+
+        connection.start().catch(err => console.error(err));
+
+        gamesChatForm.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const content = gamesChatInput.value.trim();
+            if (!content) return;
+
+            await connection.invoke("SendMessage", content);
+            gamesChatInput.value = '';
+        });
+
+        function addGamesChatMessage(message) {
+            const currentUser = "@User.Identity.Name";
+            const mine = message.username === currentUser ? 'mine' : '';
+
+            const bubble = document.createElement('div');
+            bubble.className = `chat-bubble-row ${mine}`;
+
+            let contentHtml = '';
+            if (message.type === 'text') {
+                contentHtml = `<div class="bubble-text">${message.content}</div>`;
+            } else if (message.type === 'sticker') {
+                contentHtml = `<div class="bubble-sticker">${message.content}</div>`;
+            } else if (message.type === 'image') {
+                contentHtml = `<img class="bubble-image" src="${message.filePath}" alt="Image" />`;
+            } else if (message.type === 'audio') {
+                contentHtml = `<audio class="bubble-audio" controls src="${message.filePath}"></audio>`;
+            }
+
+            const time = new Date(message.sentAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+
+            bubble.innerHTML = `
+                <div class="chat-bubble ${mine}">
+                    <div class="bubble-sender">${message.username}</div>
+                    ${contentHtml}
+                    <div class="bubble-time">${time}</div>
+                </div>
+            `;
+
+            gamesChatMessages.appendChild(bubble);
+            gamesChatMessages.scrollTop = gamesChatMessages.scrollHeight;
+        }
+    </script>
+}
+

@@ -1,0 +1,50 @@
+@model SettingsViewModel
+@{
+    ViewData["Title"] = "الإعدادات";
+}
+
+<div class="auth-box">
+    <h2>إعدادات الحساب</h2>
+
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+    {
+        <div class="alert-success" style="background: #1a4d1a; color: #4caf50; padding: 8px 12px; border-radius: 8px; font-size: 13px; margin-bottom: 10px;">
+            @Model.SuccessMessage
+        </div>
+    }
+
+    <form asp-controller="Account" asp-action="Settings" method="post" enctype="multipart/form-data">
+        <div asp-validation-summary="All" class="alert-error"></div>
+
+        <label asp-for="Username"></label>
+        <input asp-for="Username" class="form-input" />
+
+        <label asp-for="Email"></label>
+        <input asp-for="Email" type="email" class="form-input" />
+
+        <label asp-for="CurrentPassword">كلمة المرور الحالية (للتغيير)</label>
+        <input asp-for="CurrentPassword" type="password" class="form-input" />
+
+        <label asp-for="NewPassword">كلمة المرور الجديدة</label>
+        <input asp-for="NewPassword" type="password" class="form-input" />
+
+        <label asp-for="ConfirmNewPassword">تأكيد كلمة المرور الجديدة</label>
+        <input asp-for="ConfirmNewPassword" type="password" class="form-input" />
+
+        <label asp-for="ProfilePicture">صورة الملف الشخصي</label>
+        <input asp-for="ProfilePicture" type="file" class="form-input" accept="image/*" />
+
+        @if (!string.IsNullOrEmpty(Model.CurrentProfilePicture))
+        {
+            <div style="text-align: center; margin: 10px 0;">
+                <img src="@Model.CurrentProfilePicture" alt="الصورة الحالية" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #30475e;" />
+            </div>
+        }
+
+        <button type="submit" class="btn-primary">حفظ التغييرات</button>
+    </form>
+
+    <p class="switch-link">
+        <a asp-controller="Home" asp-action="Index">رجوع للرئيسية</a>
+    </p>
+</div>

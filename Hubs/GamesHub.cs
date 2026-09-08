@@ -8,11 +8,13 @@ namespace FriendsHub.Hubs
     public class GamesHub : Hub
     {
         private readonly GameRoomManager _rooms;
+        private readonly NotificationService _notifications;
         private const string LobbyGroup = "Lobby";
 
-        public GamesHub(GameRoomManager rooms)
+        public GamesHub(GameRoomManager rooms, NotificationService notifications)
         {
             _rooms = rooms;
+            _notifications = notifications;
         }
 
         public override async Task OnConnectedAsync()
@@ -28,6 +30,16 @@ namespace FriendsHub.Hubs
             var username = Context.User!.Identity!.Name!;
             var room = _rooms.CreateRoom(username);
             await Clients.Group(LobbyGroup).SendAsync("LobbyUpdated", _rooms.GetLobbyLists());
+
+            await _notifications.SendNotificationAsync(
+                recipientUsername: null,
+                actorUsername: username,
+                type: "game",
+                title: "تحدي إكس أو جديد ❌⭕",
+                message: $"أنشأ {username} تحدي إكس أو جديد، ادخل العب معاه!",
+                linkUrl: "/Games/TicTacToe"
+            );
+
             return room.RoomId;
         }
 

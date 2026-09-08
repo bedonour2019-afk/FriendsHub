@@ -17,7 +17,5 @@ namespace FriendsHub.Controllers
             ViewBag.RoomId = id;
             return View();
         }
-
-        public IActionResult Memory() => View();
     }
 }

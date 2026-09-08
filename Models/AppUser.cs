@@ -9,6 +9,9 @@ namespace FriendsHub.Models
         [Required, MaxLength(50)]
         public string Username { get; set; } = string.Empty;
 
+        [MaxLength(100)]
+        public string? Email { get; set; }
+
         [Required]
         public string PasswordHash { get; set; } = string.Empty;
 
@@ -17,5 +20,11 @@ namespace FriendsHub.Models
         public string Role { get; set; } = "User";
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;
+
+        public string? ProfilePicture { get; set; }
+
+        public bool IsOnline { get; set; } = false;
+
+        public DateTime? LastSeen { get; set; }
     }
 }

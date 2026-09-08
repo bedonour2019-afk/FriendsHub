@@ -1,0 +1,154 @@
+@model List<PostItemViewModel>
+@{
+    ViewData["Title"] = "الملف الشخصي";
+    var profileUser = ViewBag.ProfileUser;
+    var isOwnProfile = ViewBag.IsOwnProfile;
+    var currentUser = ViewBag.CurrentUser;
+}
+
+<div style="max-width: 600px; margin: 0 auto;">
+    <!-- معلومات الملف الشخصي -->
+    <div style="background: #16213e; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
+        <div style="display: flex; align-items: center; gap: 20px;">
+            <img src="@profileUser.ProfilePicture" alt="@profileUser.Username" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #2575fc;" />
+            <div>
+                <h2 style="margin: 0 0 10px 0; color: #e0e0e0;">@profileUser.Username</h2>
+                <p style="margin: 0; color: #a0a0a0; font-size: 14px;">@profileUser.Email</p>
+                <p style="margin: 5px 0 0; color: #a0a0a0; font-size: 12px;">انضم: @profileUser.CreatedAt.ToString("dd/MM/yyyy")</p>
+                @if (profileUser.IsOnline)
+                {
+                    <div style="margin-top: 8px; color: #4caf50; font-size: 13px;">🟢 أونلاين</div>
+                }
+                else
+                {
+                    <div style="margin-top: 8px; color: #888; font-size: 13px;">⚫ آخر ظهور: @(profileUser.LastSeen?.ToString("dd/MM/yyyy HH:mm") ?? "غير معروف")</div>
+                }
+            </div>
+        </div>
+
+        @if (!isOwnProfile)
+        {
+            <div style="margin-top: 20px; display: flex; gap: 10px;">
+                <a href="/PrivateChat/StartChat?username=@profileUser.Username" class="btn-primary" style="text-align: center; text-decoration: none;">إرسال رسالة 💬</a>
+                <a href="/PrivateChat/StartChat?username=@profileUser.Username" class="btn-secondary" style="text-align: center; text-decoration: none;">متابعة 👤</a>
+            </div>
+        }
+    </div>
+
+    <!-- منشورات المستخدم -->
+    <h3 style="color: #e0e0e0; margin-bottom: 15px;">المنشورات (@Model.Count)</h3>
+
+    @if (Model.Count == 0)
+    {
+        <div style="text-align: center; color: #a0a0a0; padding: 40px; background: #16213e; border-radius: 12px;">
+            <p>مفيش منشورات</p>
+        </div>
+    }
+    else
+    {
+        <div class="feed">
+            @foreach (var item in Model)
+            {
+                var post = item.Post;
+                var reactionCounts = item.ReactionCounts;
+                var currentUserReaction = item.CurrentUserReaction;
+                var comments = item.Comments;
+                var canDelete = item.CanDelete;
+
+                <div class="post-card">
+                    <div class="post-header">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <img src="@profileUser.ProfilePicture" alt="@profileUser.Username" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;" />
+                            <div>
+                                <div style="font-weight: bold; color: #e0e0e0;">@profileUser.Username</div>
+                                <div class="post-time">@post.CreatedAt.ToString("dd/MM/yyyy HH:mm")</div>
+                            </div>
+                        </div>
+                        @if (canDelete)
+                        {
+                            <form asp-controller="Posts" asp-action="DeletePost" method="post" style="display:inline;">
+                                <input type="hidden" name="id" value="@post.Id" />
+                                <button type="submit" class="btn-delete">حذف</button>
+                            </form>
+                        }
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(post.ImagePath))
+                    {
+                        <img class="post-image" src="@post.ImagePath" alt="Post image" />
+                    }
+
+                    <div class="post-caption">@post.Caption</div>
+
+                    <div class="reactions-summary">
+                        <div class="reactions-icons">
+                            @if (reactionCounts != null && reactionCounts.ContainsKey("like") && reactionCounts["like"] > 0) { <span>👍</span> }
+                            @if (reactionCounts != null && reactionCounts.ContainsKey("love") && reactionCounts["love"] > 0) { <span>❤️</span> }
+                            @if (reactionCounts != null && reactionCounts.ContainsKey("haha") && reactionCounts["haha"] > 0) { <span>😂</span> }
+                            @if (reactionCounts != null && reactionCounts.ContainsKey("sad") && reactionCounts["sad"] > 0) { <span>😢</span> }
+                            @if (reactionCounts != null && reactionCounts.ContainsKey("angry") && reactionCounts["angry"] > 0) { <span>😡</span> }
+                        </div>
+                        <div class="reactions-total">@(reactionCounts?.Values.Sum() ?? 0)</div>
+                    </div>
+
+                    <div class="post-action-buttons">
+                        <div class="reaction-btn-wrapper">
+                            <button type="button" class="action-btn @(currentUserReaction == "like" ? "reacted-like" : "")" onclick="reactPost(@post.Id, 'like')">
+                                👍 أعجبني
+                            </button>
+                            <div class="reactions-palette">
+                                <button type="button" class="palette-item" onclick="reactPost(@post.Id, 'like')">👍</button>
+                                <button type="button" class="palette-item" onclick="reactPost(@post.Id, 'love')">❤️</button>
+                                <button type="button" class="palette-item" onclick="reactPost(@post.Id, 'haha')">😂</button>
+                                <button type="button" class="palette-item" onclick="reactPost(@post.Id, 'sad')">😢</button>
+                                <button type="button" class="palette-item" onclick="reactPost(@post.Id, 'angry')">😡</button>
+                            </div>
+                        </div>
+                        <button type="button" class="action-btn" onclick="toggleComments(@post.Id)">
+                            💬 تعليق (@comments?.Count ?? 0)
+                        </button>
+                    </div>
+
+                    <div class="comments-section" id="comments-@post.Id">
+                        <div class="comments-list">
+                            @if (comments != null && comments.Count > 0)
+                            {
+                                @foreach (var comment in comments)
+                                {
+                                    <div class="comment-item">
+                                        <div class="comment-content">
+                                            <strong>@comment.Username:</strong> @comment.Content
+                                        </div>
+                                        <div class="comment-time">@comment.CreatedAt.ToString("HH:mm")</div>
+                                    </div>
+                                }
+                            }
+                        </div>
+                        <form class="comment-form" asp-controller="Posts" asp-action="AddPostComment" method="post">
+                            <input type="hidden" name="postId" value="@post.Id" />
+                            <input type="text" name="content" class="form-input comment-input" placeholder="اكتب تعليق..." required />
+                            <button type="submit" class="btn-primary btn-comment-submit">إرسال</button>
+                        </form>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        function reactPost(postId, reactionType) {
+            fetch('/Posts/TogglePostReaction', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ postId: postId, reactionType: reactionType })
+            }).then(() => location.reload());
+        }
+
+        function toggleComments(postId) {
+            const section = document.getElementById('comments-' + postId);
+            section.classList.toggle('open');
+        }
+    </script>
+}
